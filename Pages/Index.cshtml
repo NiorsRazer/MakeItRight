@@ -1,0 +1,90 @@
+﻿@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Home page";
+}
+    <header ng-controller="board">
+      <h1>{{randomResult}}</h1>
+      <section ng-repeat="randomNumber in randomArray">
+        <span>{{randomNumber}}</span>
+      </section>
+    </header>
+    <article>
+      <section ng-controller="player_1" ng-show="!player2state">
+        <header>
+            <h1>Player 1</h1>
+            <h2>{{seconds | number:1}} seconds left</h2>
+        </header>
+        <section>
+            <section ng-show="first">
+                <label>Make your guess</label>
+                <input type="number" ng-model="playerguess" maxlength="4">
+                <button ng-click="confirm(playerguess)">Confirm</button>
+            </section>
+            <section ng-show="second && !first">
+                <label ng-show="useState">Operation</label>
+                <label ng-show="!useState">Result</label>
+                <input type="text" ng-model="playerResult" readonly />
+            </section>
+            <section ng-show="second && !first">
+                <label>this close</label>
+                <input type="text" ng-model="playerDifference" readonly />
+            </section>
+        </section>
+
+        <section ng-show="second && !first">
+          <section ng-repeat="randomNumber in randomArray">
+            <button ng-click="append(randomNumber)">{{randomNumber}}</button>
+          </section>
+          <section ng-show="second && !first" ng-repeat="operationChar in operationString">
+            <button ng-click="append(operationChar)">{{operationChar}}</button>
+          </section>
+        </section>
+        <section ng-show="second && !first">
+          <button ng-click="clear()">Clear</button>
+          <button ng-show="useState" ng-click="execute()">Calculate</button>
+        </section>
+        <section ng-show="state">
+            {{message}}
+        </section>
+      </section>
+        
+      <section ng-controller="player_2" ng-show="!player1state">
+        <header>
+            <h1>Player 2</h1>
+            <h2>{{seconds | number:1}} seconds left</h2>
+        </header>
+        <section>
+            <section ng-show="first">
+                <label>Make your guess</label>
+                <input type="number" ng-model="playerguess" maxlength="4">
+                <button ng-click="confirm(playerguess)">Confirm</button>
+            </section>
+            <section ng-show="second && !first">
+                <label ng-show="useState">Operation</label>
+                <label ng-show="!useState">Result</label>
+                <input type="text" ng-model="playerResult" readonly />
+            </section>
+            <section ng-show="second && !first">
+                <label>this close</label>
+                <input type="text" ng-model="playerDifference" readonly />
+            </section>
+        </section>
+
+        <section ng-show="second && !first">
+          <section ng-repeat="randomNumber in randomArray">
+            <button ng-click="append(randomNumber)">{{randomNumber}}</button>
+          </section>
+          <section ng-show="second && !first" ng-repeat="operationChar in operationString">
+            <button ng-click="append(operationChar)">{{operationChar}}</button>
+          </section>
+        </section>
+        <section ng-show="second && !first">
+          <button ng-click="clear()">Clear</button>
+          <button ng-show="useState" ng-click="execute()">Calculate</button>
+        </section>
+        <section ng-show="state">
+            {{message}}
+        </section>
+      </section>
+    </article>

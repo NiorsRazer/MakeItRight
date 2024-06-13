@@ -1,0 +1,406 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - MakeItRight</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/MakeItRight.styles.css" asp-append-version="true" />
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.9/angular.min.js"></script>
+    <script>
+      var app = angular.module("ng-guess", []);
+
+      app.service("guessService", function () {
+        this.randomResult = Math.floor(Math.random() * 1001);
+        this.randomArray = createRandomArray();
+        this.operationString = "( ) * + - /".split(" ");
+        this.havingwinner = false;
+        this.message = "";
+
+        this.getRandomResult = function () {
+          return this.randomResult;
+        };
+
+        this.getRandomArray = function () {
+          return this.randomArray;
+        };
+
+        this.getOperationString = function () {
+          return this.operationString;
+        };
+
+        this.checkWinner = function (){
+            return this.havingwinner;
+        };
+
+        this.setWinner = function (status){
+            this.havingwinner = status;
+        };
+
+        this.getmessage = function (){
+            return this.message;
+        };
+
+        this.setmessage = function (message){
+            this.message = message;
+        };
+
+        function createRandomArray() {
+          var randomArray = [];
+          for (let index = 0; index < 5; index++) {
+            randomArray.push(Math.floor(Math.random() * 101));
+          }
+          return randomArray;
+        }
+      });
+
+      app.controller("board", function ($scope, guessService) {
+          $scope.randomResult = guessService.getRandomResult();
+          $scope.randomArray = guessService.getRandomArray();
+      });
+
+      app.controller("player_1", function ($scope, $interval, guessService, $rootScope) {
+        $scope.randomArray = guessService.getRandomArray();
+        $scope.randomResult = guessService.getRandomResult();
+        $scope.operationString = guessService.getOperationString();
+        $scope.first = true;
+        $scope.playerguess = 0;
+        $scope.state = false;
+        $scope.message = "";
+        $scope.second = false;
+        $scope.playerResult = "";
+        $scope.playerDifference = null;
+        $scope.player2state = false;
+        $scope.useState = true;
+        $scope.seconds = 60;
+        $scope.finished = false;
+
+        $rootScope.setplayer2state = function(value){
+            $scope.player2state = value;
+        }
+
+        $rootScope.set1second = function(value){
+            $scope.second = value;
+        }
+
+        $rootScope.time1stop = function(){
+            $interval.cancel(timer);
+        }
+
+        $scope.append = function (value) {
+          $scope.playerResult += value;
+        };
+
+        $scope.setVictory = function (state, message){
+            $scope.state = state;
+            $scope.second = false;
+            $scope.message = message;
+        };
+        $rootScope.check1 = function() {
+          $scope.checkFirst();
+        };
+
+        $scope.checkFirst = function (){
+          if($rootScope.player1Finished && $rootScope.player2Finished){
+            if($rootScope.player1Difference < $rootScope.player2Difference){
+              console.log("1");
+              $scope.first = false;
+              $scope.second = true;
+            }
+            else if($rootScope.player1Time < $rootScope.player2Time){
+                $scope.first = false;
+                $scope.second = true;
+            }
+            else{
+              $rootScope.check2();
+            }
+          }
+        };
+
+        $scope.confirm = function (value){
+          $scope.playerguess = value;
+          $rootScope.player1guess = $scope.playerguess;
+          $rootScope.player1Difference = Math.abs($scope.playerguess - guessService.getRandomResult());
+          $rootScope.player1Finished = true;
+          $rootScope.player1Time = 60 - $scope.seconds;
+          $interval.cancel(timer);
+          $scope.checkFirst();
+        };
+
+        $scope.clear = function () {
+          $scope.playerResult = "";
+        };
+
+        $scope.toggleState = function () {
+          $scope.useState = !$scope.useState;
+        };
+
+        $scope.execute = function () {
+          if (!$scope.finished) {
+            $scope.toggleState();
+            $scope.calculate();
+            $scope.finished = true;
+            $rootScope.player1Result = $scope.playerResult;
+            $scope.showDifference();
+            $scope.checkWinner(guessService);
+          }
+        };
+
+        $scope.calculate = function () {
+          try {
+            $scope.playerResult = eval($scope.playerResult);
+          } catch (e) {
+            $scope.playerResult = "Error";
+          }
+        };
+
+        $scope.showDifference = function () {
+          if ($scope.playerResult !== "Error") {
+            $scope.playerDifference = Math.abs($scope.playerResult - $scope.randomResult);
+          }
+        };
+
+        var timer = $interval(function() {
+          if ($scope.seconds > 0) {
+            $scope.seconds -= 0.1;
+          } else {
+            $scope.execute();
+          }
+        }, 100);
+
+        $scope.$on('$destroy', function() {
+          $interval.cancel(timer);
+        });
+
+        $scope.checkWinner = function (guessService) {
+            guessService.setWinner(true);
+            var win_message = "Player 1 wins";
+            var lose_message = "Player 2 wins";
+          if($rootScope.player1guess != $rootScope.player1Result){
+            @* $scope.second = false; *@
+            $scope.setVictory(true, lose_message);
+             $rootScope.setplayer1state(true);
+          }
+          else if ($rootScope.player1Finished && $rootScope.player2Finished) {
+            if ($scope.playerResult == $scope.randomResult) {
+                $scope.setVictory(true, win_message);
+                $rootScope.setplayer1state(true);
+              @* alert("Player 1 wins with the exact result!"); *@
+            } else if ($rootScope.player2Result == $scope.randomResult) {
+                $scope.setVictory(true, lose_message);
+                 $rootScope.setplayer1state(true);
+              @* alert("Player 2 wins with the exact result!"); *@
+            } else if ($scope.playerDifference < $rootScope.player2Difference) {
+                $scope.setVictory(true, win_message);
+                 $rootScope.setplayer1state(true);
+              @* alert("Player 1 wins by being closer!"); *@
+            } else if ($scope.playerDifference > $rootScope.player2Difference) {
+              $scope.setVictory(true, lose_message);
+               $rootScope.setplayer1state(true);
+              @* alert("Player 2 wins by being closer!"); *@
+            } else {
+              if ($rootScope.player1Time < $rootScope.player2Time) {
+                $scope.setVictory(true, win_message);
+                 $rootScope.setplayer1state(true);
+                @* alert("Player 1 wins by being faster!"); *@
+              } else {
+                $scope.setVictory(true, lose_message);
+                 $rootScope.setplayer1state(true);
+                @* alert("Player 2 wins by being faster!"); *@
+              }
+            }
+          }
+        };
+        $rootScope.player1Finished = false;
+      });
+
+      app.controller("player_2", function ($scope, $interval, guessService, $rootScope) {
+        $scope.randomArray = guessService.getRandomArray();
+        $scope.randomResult = guessService.getRandomResult();
+        $scope.operationString = guessService.getOperationString();
+        $scope.first = true;
+        $scope.playerguess = 0;
+        $scope.second = false;
+        $scope.state = false;
+        $scope.message = "";
+        $scope.playerResult = "";
+        $scope.playerDifference = null;
+        $scope.useState = true;
+        $scope.player1state = false;
+        $scope.seconds = 60;
+        $scope.finished = false;
+
+        $rootScope.setplayer1state = function(value){
+            $scope.player1state = value;
+        }
+
+        $rootScope.set2second = function(value){
+            $scope.second = value;
+        }
+
+        $rootScope.time2stop = function(){
+            $interval.cancel(timer);
+        }
+
+        $scope.append = function (value) {
+          $scope.playerResult += value;
+        };
+
+        $scope.checkFirst = function (){
+          if($rootScope.player1Finished && $rootScope.player2Finished){
+            if($rootScope.player1Difference > $rootScope.player2Difference){
+              console.log("2");
+              $scope.first = false;
+              $scope.second = true;
+            }
+            else if($rootScope.player1Time > $rootScope.player2Time){
+                $scope.first = false;
+                $scope.second = true;
+            }
+            else{
+              $rootScope.check1();
+            }
+          }
+        };
+
+        $scope.confirm = function (value){
+          $scope.playerguess = value;
+          @* $scope.first = false;
+          $scope.second = true; *@
+          $rootScope.player2guess = $scope.playerguess;
+          $rootScope.player2Difference = Math.abs($scope.playerguess - guessService.getRandomResult());
+          $rootScope.player2Finished = true;
+          $rootScope.player2Time = 60 - $scope.seconds;
+          $interval.cancel(timer);
+          $scope.checkFirst();
+        };
+
+        $scope.setVictory = function (state, message){
+            $scope.state = state;
+            $scope.second = false;
+            $scope.message = message;
+        };
+        $rootScope.check2 = function() {
+          $scope.checkFirst();
+        };
+
+        $scope.clear = function () {
+          $scope.playerResult = "";
+        };
+
+        $scope.toggleState = function () {
+          $scope.useState = !$scope.useState;
+        };
+
+        $scope.execute = function () {
+          if (!$scope.finished) {
+            $scope.toggleState();
+            $scope.calculate();
+            $scope.finished = true;
+            $rootScope.player2Result = $scope.playerResult;
+            $scope.showDifference();
+            $scope.checkWinner(guessService);
+          }
+        };
+
+        $scope.calculate = function () {
+          try {
+            $scope.playerResult = eval($scope.playerResult);
+          } catch (e) {
+            $scope.playerResult = "Error";
+          }
+        };
+
+        $scope.showDifference = function () {
+          if ($scope.playerResult !== "Error") {
+            $scope.playerDifference = Math.abs($scope.playerResult - $scope.randomResult);
+          }
+        };
+
+        var timer = $interval(function() {
+          if ($scope.seconds > 0 && !$scope.player1state) {
+            $scope.seconds -= 0.1;
+          } else {
+            $scope.execute();
+          }
+        }, 100);
+
+        $scope.$on('$destroy', function() {
+          $interval.cancel(timer);
+        });
+
+        $scope.checkWinner = function (guessService) {
+            guessService.setWinner(true);
+            var win_message = "Player 2 wins";
+            var lose_message = "Player 1 wins";
+          if($rootScope.player2guess != $rootScope.player2Result){
+            @* alert("Player 1 wins"); *@
+            $scope.setVictory(true, lose_message);
+            $rootScope.setplayer2state(true);
+          }
+          if ($rootScope.player1Finished && $rootScope.player2Finished) {
+            if ($scope.playerResult == $scope.randomResult) {
+                $scope.setVictory(true, win_message);
+                $rootScope.setplayer2state(true);
+              @* alert("Player 2 wins with the exact result!"); *@
+            } else if ($rootScope.player1Result == $scope.randomResult) {
+                $scope.setVictory(true, lose_message);
+                $rootScope.setplayer2state(true);
+              @* alert("Player 1 wins with the exact result!"); *@
+            } else if ($scope.playerDifference < $rootScope.player1Difference) {
+                $scope.setVictory(true, win_message);
+                $rootScope.setplayer2state(true);
+              @* alert("Player 2 wins by being closer!"); *@
+            } else if ($scope.playerDifference > $rootScope.player1Difference) {
+                $scope.setVictory(true, lose_message);
+                $rootScope.setplayer2state(true);
+              @* alert("Player 1 wins by being closer!"); *@
+            } else {
+              if ($rootScope.player2Time < $rootScope.player1Time) {
+                    $scope.setVictory(true, win_message);
+                    $rootScope.setplayer2state(true);
+                @* alert("Player 2 wins by being faster!"); *@
+              } else {
+                    $scope.setVictory(true, lose_message);
+                    $rootScope.setplayer2state(true);
+                @* alert("Player 1 wins by being faster!"); *@
+              }
+            }
+          }
+        };
+        $rootScope.player2Finished = false;
+      });
+    </script>
+</head>
+<body ng-app="ng-guess">
+    <header>
+        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
+            <div class="container">
+                <a class="navbar-brand" asp-area="" asp-page="/Index">MakeItRight</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
+                        aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+            </div>
+        </nav>
+    </header>
+    <div class="container">
+        <main role="main" class="pb-3">
+            @RenderBody()
+        </main>
+    </div>
+
+    <footer class="border-top footer text-muted">
+        <div class="container">
+            &copy; 2024 - MakeItRight - <a asp-area="" asp-page="/Privacy">Privacy</a>
+        </div>
+    </footer>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>
